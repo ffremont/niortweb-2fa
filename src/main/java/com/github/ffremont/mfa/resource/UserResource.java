@@ -52,14 +52,14 @@ public class UserResource {
 
     private final TimeBasedOneTimePassword totp = new TimeBasedOneTimePassword();
 
-    @PostMapping(value="{login}/signin", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE    })
+    @PostMapping(value = "{login}/signin", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
     public ResponseEntity<User> login(@PathVariable String login, Signin signin) throws NoSuchAlgorithmException, InvalidKeyException {
         User user = Optional.ofNullable(USERS.get(login)).orElseThrow(() -> new ResourceException("utilisateur introuvable", 401));
-        if(!user.getHashPass().equals(DigestUtils.sha256Hex(signin.getPassword()))){
+        if (!user.getHashPass().equals(DigestUtils.sha256Hex(signin.getPassword()))) {
             throw new ResourceException("password invalide", 401);
         }
 
-        if(!totp.isTokenValid(user.getSecretTotp(), signin.getCode())){
+        if (!totp.isTokenValid(user.getSecretTotp(), signin.getCode())) {
             throw new ResourceException("TOTP invalide", 401);
         }
         log.info("🥳 connexion avec succès pour {} !", user.getLogin());
@@ -72,7 +72,7 @@ public class UserResource {
         return ResponseEntity.noContent().header("Set-Cookie", cookie.toString()).build();
     }
 
-    @GetMapping(value="{login}/2fa", produces = {MediaType.IMAGE_JPEG_VALUE})
+    @GetMapping(value = "{login}/2fa")
     public ResponseEntity<byte[]> totpExport(@PathVariable String login) throws IOException {
         final User user = USERS.get(login);
 
@@ -88,7 +88,7 @@ public class UserResource {
         ImageIO.write(QrCodeUtils.gen(txt
         ), "jpg", bao);
 
-        return ResponseEntity.ok().header("Cache-Control","no-cache,no-store").contentType(MediaType.IMAGE_JPEG).body(bao.toByteArray());
+        return ResponseEntity.ok().header("Cache-Control", "no-cache,no-store").contentType(MediaType.IMAGE_JPEG).body(bao.toByteArray());
     }
 
 }
