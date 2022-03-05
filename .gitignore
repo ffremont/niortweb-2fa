@@ -35,3 +35,4 @@ build/
 
 ### React ###
 src/main/frontend/build
+src/main/frontend/node_modules
