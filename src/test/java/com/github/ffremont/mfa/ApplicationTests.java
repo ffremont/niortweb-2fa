@@ -1,4 +1,4 @@
-package com.github.ffremont.fa;
+package com.github.ffremont.mfa;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
