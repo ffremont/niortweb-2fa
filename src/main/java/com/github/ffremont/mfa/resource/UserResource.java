@@ -4,6 +4,7 @@ import com.github.ffremont.mfa.ResourceException;
 import com.github.ffremont.mfa.image.QrCodeUtils;
 import com.github.ffremont.mfa.model.Signin;
 import com.github.ffremont.mfa.model.User;
+import com.github.ffremont.mfa.security.JwtUtils;
 import com.github.ffremont.mfa.security.TimeBasedOneTimePassword;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -13,13 +14,14 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.coyote.Response;
-import org.springframework.boot.web.server.Cookie;
 import org.springframework.boot.web.servlet.server.CookieSameSiteSupplier;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.imageio.ImageIO;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 import javax.websocket.server.PathParam;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class UserResource {
 
+    private final static String AUTH_HEADER = "auth";
     /**
      * Collection des utilisateurs
      */
@@ -52,8 +55,11 @@ public class UserResource {
 
     private final TimeBasedOneTimePassword totp = new TimeBasedOneTimePassword();
 
+    /**
+    *
+     */
     @PostMapping(value = "{login}/signin", consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
-    public ResponseEntity<User> login(@PathVariable String login, Signin signin) throws NoSuchAlgorithmException, InvalidKeyException {
+    public ResponseEntity<User> login(@PathVariable String login, Signin signin, HttpServletResponse response) throws NoSuchAlgorithmException, InvalidKeyException {
         User user = Optional.ofNullable(USERS.get(login)).orElseThrow(() -> new ResourceException("utilisateur introuvable", 401));
         if (!user.getHashPass().equals(DigestUtils.sha256Hex(signin.getPassword()))) {
             throw new ResourceException("password invalide", 401);
@@ -66,10 +72,17 @@ public class UserResource {
 
         Key key = Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
         final String jws = Jwts.builder().setSubject(user.getLogin()).signWith(key).compact();
-        HttpCookie cookie = new HttpCookie("my-auth-cookie", jws);
+        Cookie cookie = new Cookie(AUTH_HEADER, jws);
         cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        response.addCookie(cookie);
 
-        return ResponseEntity.noContent().header("Set-Cookie", cookie.toString()).build();
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<String> me(@CookieValue(AUTH_HEADER) String authCookieValue){
+        return ResponseEntity.ok(JwtUtils.extractSubject(authCookieValue, JWT_SECRET));
     }
 
     @GetMapping(value = "{login}/2fa")

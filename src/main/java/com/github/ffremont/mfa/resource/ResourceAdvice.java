@@ -9,6 +9,6 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 public class ResourceAdvice {
     @ExceptionHandler(ResourceException.class)
     public ResponseEntity handleConflict(ResourceException e) {
-        return ResponseEntity.status(e.getStatus()).build();
+        return ResponseEntity.status(e.getStatus()).body("Oups "+e.getStatus()+" !");
     }
 }

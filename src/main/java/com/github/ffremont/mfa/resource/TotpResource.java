@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.UUID;
 
 @RestController
@@ -26,9 +27,21 @@ import java.util.UUID;
 @Slf4j
 public class TotpResource {
 
+    public static String generateSecretKey() {
+        SecureRandom random = new SecureRandom();
+        // 20 octets -> 160 bits
+        // il faut 5 bits pour encoder un caractère en base32
+        // 160 / 5 => 32 caractères
+        byte[] bytes = new byte[20];
+        random.nextBytes(bytes);
+        Base32 base32 = new Base32();
+        return base32.encodeToString(bytes);
+    }
+
     @GetMapping("generate")
     public ResponseEntity<String> generateTotp(){
-        return ResponseEntity.ok(StringUtils.truncate(new String(new Base32().encode(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8), 32));
+
+        return ResponseEntity.ok(generateSecretKey());
     }
 
 
